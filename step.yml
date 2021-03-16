@@ -41,47 +41,50 @@ host_os_tags:
 # Type tags are used for categorizing steps, for easier step discovery in Step Libraries.
 # You can find more information about type tags in the Step Development Guideline:
 # https://github.com/bitrise-io/bitrise/blob/master/_docs/step-development-guideline.md
+project_type_tags:
+  - ios
+
 type_tags:
-  - utility
+  - code-sign
 
 is_requires_admin_user: true
 is_always_run: false
 is_skippable: false
-run_if: ""
-
-deps:
-  brew:
-  - name: git
-  - name: wget
-  apt_get:
-  - name: git
-  - name: wget
-
+run_if: ".IsCI"
 
 toolkit:
   go:
-    package_name: github.com/birmacher/bitrise-step-register-ios-device
-
+    package_name: github.com/birmacher/bitrise-step-register-ios-device/issues
 
 inputs:
-  - example_step_input: Default Value - you can leave this empty if you want to
+  - api_key_path: ""
     opts:
-      title: "Example Step Input"
-      summary: Summary. No more than 2-3 sentences.
-      description: |
-        Description of this input.
-
-        Can be Markdown formatted text.
-      is_expand: true
-      is_required: true
-      value_options: []
-
+      title: "API Key URL"
+      summary: Path to local or remote file
+      description: |-
+        Specify the path in an URL format where your API key is stored.
+        
+        For example: `https://URL/TO/AuthKey_something.p8` or `file:///PATH/TO/AuthKey_something.p8`
+        
+        You can upload your key on the **Generic File Storage** tab in the Workflow Editor and set the Environment Variable for the file here.
+        
+        For example: `$BITRISEIO_MYKEY_URL`
+      is_sensitive: true
+  - api_issuer: ""
+    opts:
+      title: "API Key Issuer ID"
+      description: |-
+        Issuer ID. Required if **API Key URL** (`api_key_path`) is specified.
+  - build_api_token: $BITRISE_BUILD_API_TOKEN
+    opts:
+      title: Build API token
+      description: |-
+        Every build gets a temporary Bitrise API token to download the connected API key in a JSON file.
+      is_dont_change_value: true
+  - build_url: $BITRISE_BUILD_URL
+    opts:
+      title: Build URL
+      description: |-
+        URL of the current build or local path URL to your apple_developer_portal_data.json.
+      is_dont_change_value: true
 outputs:
-  - EXAMPLE_STEP_OUTPUT:
-    opts:
-      title: "Example Step Output"
-      summary: Summary. No more than 2-3 sentences.
-      description: |
-        Description of this output.
-
-        Can be Markdown formatted text.

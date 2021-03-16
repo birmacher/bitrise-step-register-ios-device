@@ -27,7 +27,7 @@ func handleSessionDataError(err error) {
 	}
 
 	log.Errorf("Failed to activate Bitrise Apple Developer Portal connection:\n%v", err)
-	log.Warnf("Failing back to step inputs.\nRead more about this issue: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/")
+	log.Warnf("Falling back to step inputs.\nRead more about this issue: https://devcenter.bitrise.io/getting-started/configuring-bitrise-steps-that-require-apple-developer-account-data/")
 }
 
 func setupStepConfigs() (Config, error) {
