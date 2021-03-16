@@ -1,0 +1,34 @@
+format_version: 8
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+app:
+  envs:
+  # An example secret param, define it (A_SECRET_PARAM) in .bitrise.secrets.yml
+  - BITRISE_BUILD_URL: $BITRISE_BUILD_URL
+  - BITRISE_BUILD_API_TOKEN: $BITRISE_BUILD_API_TOKEN
+  - API_KEY_PATH: $BITRISEIO_ASC_API_KEY_URL
+  - API_ISSUER: $ASC_API_KEY_ISSUER
+  # If you want to share this step into a StepLib
+  - BITRISE_STEP_ID: register-ios-device
+  - BITRISE_STEP_VERSION: "0.0.1"
+  - BITRISE_STEP_GIT_CLONE_URL: https://github.com/birmacher/bitrise-step-register-ios-device.git
+  - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
+workflows:
+  test:
+    steps:
+      - path::./:
+          title: Step Test
+          run_if: true
+          inputs:
+            - api_key_path: $API_KEY_PATH
+            - api_issuer: $API_ISSUER
+            - build_api_token: $BITRISE_BUILD_API_TOKEN
+            - build_url: $BITRISE_BUILD_URL
+  audit-this-step:
+    steps:
+      - script:
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -ex
+                stepman audit --step-yml ./step.yml
