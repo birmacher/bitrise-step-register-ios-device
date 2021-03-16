@@ -1,4 +1,4 @@
-module github.com/birmacher/bitrise-step-register-ios-device
+module github.com/birmacher/steps-register-ios-device
 
 go 1.16
 
