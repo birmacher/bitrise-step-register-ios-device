@@ -4,7 +4,26 @@ You can use this step to register your iOS device to the Apple Developer portal
 
 ## Examples
 
-### List packages in the working directory excluding vendor/*
+### Register a new device in the Apple Developer Portal
+
+```yml
+---
+format_version: '8'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+workflows:
+  register_device:
+    steps:
+    - register-ios-device:
+        inputs:
+        - api_key_path: $BITRISE_API_KEY_PATH # Path to your p8 file
+        - api_issuer: $BITRISE_API_ISSUER     # iTunes Connect Issuer Key
+        - device_name: "QA iPhone 12 Pro Max"
+        - device_udid: "00000000-000000A000000000"
+        - device_platform: "ios"
+```
+
+### Register a new device in the Apple Developer Portal and generate a new IPA with an updated provisioning profile
 
 ```yml
 ---
@@ -22,6 +41,14 @@ workflows:
         - device_name: "QA iPhone 12 Pro Max"
         - device_udid: "00000000-000000A000000000"
         - device_platform: "ios"
+    - certificate-and-profile-installer@1: {}
+    - ios-auto-provision-appstoreconnect@1:
+        inputs:
+        - api_issuer: "$BITRISE_API_ISSUER"
+        - api_key_path: "$BITRISE_API_KEY_PATH"
+    - xcode-archive@3:
+        inputs:
+        - export_method: ad-hoc
 ```
 
 ## Configuration
