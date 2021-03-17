@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/birmacher/steps-register-ios-device/device"
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/appleauth"
@@ -107,7 +108,16 @@ func main() {
 	config, err := setupStepConfigs()
 	logErrorAndExitIfAny(err)
 
-	_, err = setupAppStoreConnectAPIClient(config)
+	client, err := setupAppStoreConnectAPIClient(config)
+	logErrorAndExitIfAny(err)
+
+	err = device.RegisterDevices(client, []device.Device{
+		{
+			Name:     config.DeviceName,
+			UDID:     config.DeviceUDID,
+			Platform: config.DevicePlatform,
+		},
+	})
 	logErrorAndExitIfAny(err)
 
 	os.Exit(0)

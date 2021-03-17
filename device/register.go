@@ -2,10 +2,8 @@ package device
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/devportalservice"
 	"github.com/bitrise-steplib/steps-ios-auto-provision-appstoreconnect/appstoreconnect"
 )
 
@@ -22,51 +20,51 @@ func registerDevice(client *appstoreconnect.Client, device Device) error {
 		Data: appstoreconnect.DeviceCreateRequestData{
 			Attributes: appstoreconnect.DeviceCreateRequestDataAttributes{
 				Name:     device.Name,
-				Platform: appstoreconnect.IOS,
 				UDID:     device.UDID,
+				Platform: device.ASCPlatform(),
 			},
 			Type: "devices",
 		},
 	}
 
-	log.Infof("Registering device %s (%s) to App Store Connect", device.Name, device.UDID)
 	_, err := client.Provisioning.RegisterNewDevice(req)
 	if err != nil {
 		rerr, ok := err.(*appstoreconnect.ErrorResponse)
-		if ok && rerr.Response != nil && rerr.Response.StatusCode == http.StatusConflict {
-			log.Warnf("Failed to register device: %s (%s), skipping", device.Name, device.UDID)
+		if ok && rerr.Response != nil {
+			errorStr := fmt.Sprintf("Failed to register device %s (%s)", device.Name, device.UDID)
 			for _, error := range rerr.Errors {
-				log.Warnf("%s - %s", error.Title, error.Detail)
+				errorStr += "\n" + error.Title + ": " + error.Detail
 			}
+			return fmt.Errorf("%s", errorStr)
 		}
-
-		return err
 	}
 
 	return nil
 }
 
-func registerDevices(client *appstoreconnect.Client, devices []Device) error {
+func RegisterDevices(client *appstoreconnect.Client, devices []Device) error {
 	if client == nil {
 		return fmt.Errorf("Failed to estabilish connection: App Store Connect client not provided")
 	}
 
-	ascDevices, err := ascListDevices(client)
-	if err != nil {
-		return err
-	}
-
 	for _, device := range devices {
-		for _, ascDevice := range ascDevices {
-			if devportalservice.IsEqualUDID(ascDevice.Attributes.UDID, device.UDID) {
-				log.Infof("Device with %s (%s) UDID is already registered on App Store Connect, skipping", device.Name, device.UDID)
-				continue
-			}
+		log.Printf("")
+		log.Infof("Registering device %s (%s)", device.Name, device.UDID)
 
-			if err := registerDevice(client, device); err != nil {
-				return err
-			}
+		ascDevices, err := ascListDevice(client, device)
+		if err != nil {
+			return err
 		}
+
+		if len(ascDevices) > 0 {
+			log.Warnf("Device is already registered on App Store Connect, skipping")
+			continue
+		}
+
+		if err := registerDevice(client, device); err != nil {
+			return err
+		}
+		log.Donef("Device %s (%s) successfully registered", device.Name, device.UDID)
 	}
 
 	return nil

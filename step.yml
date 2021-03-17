@@ -87,4 +87,26 @@ inputs:
       description: |-
         URL of the current build or local path URL to your apple_developer_portal_data.json.
       is_dont_change_value: true
+  - device_name: $DEVICE_NAME
+    opts:
+      title: Device Name
+      description: |-
+        The name of the device that you want to register
+      is_dont_change_value: true
+  - device_udid: $DEVICE_UDID
+    opts:
+      title: Device UDID
+      description: |-
+        The UDID of the device that you want to register
+      is_dont_change_value: true
+  - device_platform: "ios"
+    opts:
+      title: Device Platform
+      description: |-
+        The platform of the device that you want to register
+      is_dont_change_value: true
+      value_options:
+      - "ios"
+      - "macos"
+      - "universal"
 outputs:
