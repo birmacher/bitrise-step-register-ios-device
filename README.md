@@ -30,13 +30,13 @@ workflows:
 
 | Parameter | Description | Required | Default |
 | --- | --- | --- | --- |
-| api_key_path | Path to local or remote file that holds the API Key for iTunes Connect API (p8 file) | * | "" |
-| api_issuer | iTunes Connect API Issuer Key | * | "" |
+| api_key_path | Path to local or remote file that holds the API Key for iTunes Connect API (p8 file) | 👍 | "" |
+| api_issuer | iTunes Connect API Issuer Key | 👍 | "" |
 | build_api_token | Bitrise.io Build API token | - | $BITRISE_BUILD_API_TOKEN |
 | build_url | Build URL on bitrise.io | - | $BITRISE_BUILD_URL |
-| device_name | The name of the device that you want to register | + | "" |
-| device_udid | The UDID of the device that you want to register | + | "" |
-| device_platform | The platform of the device that you want to register | + | ios |
+| device_name | The name of the device that you want to register | 👍 | "" |
+| device_udid | The UDID of the device that you want to register | 👍 | "" |
+| device_platform | The platform of the device that you want to register | 👍 | ios |
 
 ### Outputs
 
