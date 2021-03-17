@@ -13,9 +13,9 @@ summary: |
   You can use this step to register your iiOS Device's UDID on the Apple Developer Portal
 description: |
   You can use this step to register your iOS Device's UDID on the Apple Developer Portal
-website: https://github.com/birmacher/bitrise-step-register-ios-device
-source_code_url: https://github.com/birmacher/bitrise-step-register-ios-device
-support_url: https://github.com/birmacher/bitrise-step-register-ios-device/issues
+website: https://github.com/birmacher/steps-register-ios-device
+source_code_url: https://github.com/birmacher/steps-register-ios-device
+support_url: https://github.com/birmacher/steps-register-ios-device/issues
 host_os_tags:
   - osx-10.10
   - ubuntu-16.04
@@ -54,7 +54,7 @@ run_if: ".IsCI"
 
 toolkit:
   go:
-    package_name: github.com/birmacher/bitrise-step-register-ios-device/issues
+    package_name: github.com/birmacher/steps-register-ios-device
 
 inputs:
   - api_key_path: ""
