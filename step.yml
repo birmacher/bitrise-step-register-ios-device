@@ -60,9 +60,9 @@ inputs:
   - api_key_path: ""
     opts:
       title: "API Key URL"
-      summary: Path to local or remote file
+      summary: Path to local or remote file that holds the API Key for iTunes Connect API (p8 file)
       description: |-
-        Specify the path in an URL format where your API key is stored.
+        Specify the path to your local or remote file that holds the API key for iTunes Connect API (p8 file).
         
         For example: `https://URL/TO/AuthKey_something.p8` or `file:///PATH/TO/AuthKey_something.p8`
         
@@ -72,28 +72,28 @@ inputs:
       is_sensitive: true
   - api_issuer: ""
     opts:
-      title: "API Key Issuer ID"
+      title: "iTunes Connect API Issuer Key"
       description: |-
-        Issuer ID. Required if **API Key URL** (`api_key_path`) is specified.
+        iTunes Connect API Issuer Key
   - build_api_token: $BITRISE_BUILD_API_TOKEN
     opts:
-      title: Build API token
+      title: Build API token on bitrise.io
       description: |-
         Every build gets a temporary Bitrise API token to download the connected API key in a JSON file.
       is_dont_change_value: true
   - build_url: $BITRISE_BUILD_URL
     opts:
-      title: Build URL
+      title: Build URL on bitrise.io
       description: |-
         URL of the current build or local path URL to your apple_developer_portal_data.json.
       is_dont_change_value: true
-  - device_name: $DEVICE_NAME
+  - device_name:
     opts:
       title: Device Name
       description: |-
         The name of the device that you want to register
       is_dont_change_value: true
-  - device_udid: $DEVICE_UDID
+  - device_udid:
     opts:
       title: Device UDID
       description: |-

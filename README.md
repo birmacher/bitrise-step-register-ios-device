@@ -1,93 +1,63 @@
-# Register iOS Device
+# Register iOS Device [![Bitrise Build Status]()]() [![Bitrise Step Version](https://img.shields.io/badge/version-0.0.1-blue)](https://www.bitrise.io/integrations/steps/register-ios-device) [![GitHub License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/bitrise-steplib/steps-go-list/master/LICENSE) [![Bitrise Community](https://img.shields.io/badge/community-Bitrise%20Discuss-lightgrey)](https://discuss.bitrise.io/)
 
-You can use this step to register your iOS Device's UDID on the Apple Developer Portal
+You can use this step to register your iOS device to the Apple Developer portal
 
+## Examples
 
-## How to use this Step
+### List packages in the working directory excluding vendor/*
 
-Can be run directly with the [bitrise CLI](https://github.com/bitrise-io/bitrise),
-just `git clone` this repository, `cd` into it's folder in your Terminal/Command Line
-and call `bitrise run test`.
-
-*Check the `bitrise.yml` file for required inputs which have to be
-added to your `.bitrise.secrets.yml` file!*
-
-Step by step:
-
-1. Open up your Terminal / Command Line
-2. `git clone` the repository
-3. `cd` into the directory of the step (the one you just `git clone`d)
-5. Create a `.bitrise.secrets.yml` file in the same directory of `bitrise.yml`
-   (the `.bitrise.secrets.yml` is a git ignored file, you can store your secrets in it)
-6. Check the `bitrise.yml` file for any secret you should set in `.bitrise.secrets.yml`
-  * Best practice is to mark these options with something like `# define these in your .bitrise.secrets.yml`, in the `app:envs` section.
-7. Once you have all the required secret parameters in your `.bitrise.secrets.yml` you can just run this step with the [bitrise CLI](https://github.com/bitrise-io/bitrise): `bitrise run test`
-
-An example `.bitrise.secrets.yml` file:
-
-```
-envs:
-- A_SECRET_PARAM_ONE: the value for secret one
-- A_SECRET_PARAM_TWO: the value for secret two
+```yml
+---
+format_version: '8'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+workflows:
+  register_device:
+    steps:
+    - git-clone: {}
+    - register-ios-device:
+        inputs:
+        - api_key_path: $BITRISE_API_KEY_PATH # Path to your p8 file
+        - api_issuer: $BITRISE_API_ISSUER     # iTunes Connect Issuer Key
+        - device_name: "QA iPhone 12 Pro Max"
+        - device_udid: "00000000-000000A000000000"
+        - device_platform: "ios"
 ```
 
-## How to create your own step
+## Configuration
 
-1. Create a new git repository for your step (**don't fork** the *step template*, create a *new* repository)
-2. Copy the [step template](https://github.com/bitrise-steplib/step-template) files into your repository
-3. Fill the `step.sh` with your functionality
-4. Wire out your inputs to `step.yml` (`inputs` section)
-5. Fill out the other parts of the `step.yml` too
-6. Provide test values for the inputs in the `bitrise.yml`
-7. Run your step with `bitrise run test` - if it works, you're ready
+### Inputs
 
-__For Step development guidelines & best practices__ check this documentation: [https://github.com/bitrise-io/bitrise/blob/master/_docs/step-development-guideline.md](https://github.com/bitrise-io/bitrise/blob/master/_docs/step-development-guideline.md).
+| Parameter | Description | Required | Default |
+| --- | --- | --- | --- |
+| api_key_path | Path to local or remote file that holds the API Key for iTunes Connect API (p8 file) | * | "" |
+| api_issuer | iTunes Connect API Issuer Key | * | "" |
+| build_api_token | Bitrise.io Build API token | - | $BITRISE_BUILD_API_TOKEN |
+| build_url | Build URL on bitrise.io | - | $BITRISE_BUILD_URL |
+| device_name | The name of the device that you want to register | + | "" |
+| device_udid | The UDID of the device that you want to register | + | "" |
+| device_platform | The platform of the device that you want to register | + | ios |
 
-**NOTE:**
+### Outputs
 
-If you want to use your step in your project's `bitrise.yml`:
+This step does not generate any outputs
 
-1. git push the step into it's repository
-2. reference it in your `bitrise.yml` with the `git::PUBLIC-GIT-CLONE-URL@BRANCH` step reference style:
+## Contributing
 
+We welcome [pull requests](https://github.com/birmacher/steps-register-ios-device/pulls) and [issues](https://github.com/birmacher/steps-register-ios-device/issues) against this repository. 
+
+For pull requests, work on your changes in a forked repository
+
+### Running locally
+
+Copy the tmp.bitrise.secrets.yml file and set the correct environment variables in it
+```sh
+cp tmp.bitrise.secrets.yml .bitrise.secrets.yml
 ```
-- git::https://github.com/user/my-step.git@branch:
-   title: My step
-   inputs:
-   - my_input_1: "my value 1"
-   - my_input_2: "my value 2"
-```
 
-You can find more examples of step reference styles
-in the [bitrise CLI repository](https://github.com/bitrise-io/bitrise/blob/master/_examples/tutorials/steps-and-workflows/bitrise.yml#L65).
+Use the bitrise cli to [run your tests locally](https://devcenter.bitrise.io/bitrise-cli/run-your-first-build/)
 
-## How to contribute to this Step
+### Creating your own steps
 
-1. Fork this repository
-2. `git clone` it
-3. Create a branch you'll work on
-4. To use/test the step just follow the **How to use this Step** section
-5. Do the changes you want to
-6. Run/test the step before sending your contribution
-  * You can also test the step in your `bitrise` project, either on your Mac or on [bitrise.io](https://www.bitrise.io)
-  * You just have to replace the step ID in your project's `bitrise.yml` with either a relative path, or with a git URL format
-  * (relative) path format: instead of `- original-step-id:` use `- path::./relative/path/of/script/on/your/Mac:`
-  * direct git URL format: instead of `- original-step-id:` use `- git::https://github.com/user/step.git@branch:`
-  * You can find more example of alternative step referencing at: https://github.com/bitrise-io/bitrise/blob/master/_examples/tutorials/steps-and-workflows/bitrise.yml
-7. Once you're done just commit your changes & create a Pull Request
+Follow [this guide](https://devcenter.bitrise.io/contributors/create-your-own-step/) if you would like to create your own step
 
-
-## Share your own Step
-
-You can share your Step or step version with the [bitrise CLI](https://github.com/bitrise-io/bitrise). If you use the `bitrise.yml` included in this repository, all you have to do is:
-
-1. In your Terminal / Command Line `cd` into this directory (where the `bitrise.yml` of the step is located)
-1. Run: `bitrise run test` to test the step
-1. Run: `bitrise run audit-this-step` to audit the `step.yml`
-1. Check the `share-this-step` workflow in the `bitrise.yml`, and fill out the
-   `envs` if you haven't done so already (don't forget to bump the version number if this is an update
-   of your step!)
-1. Then run: `bitrise run share-this-step` to share the step (version) you specified in the `envs`
-1. Send the Pull Request, as described in the logs of `bitrise run share-this-step`
-
-That's all ;)
