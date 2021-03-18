@@ -70,14 +70,15 @@ func setupAppStoreConnectAPIClient(config Config) (*appstoreconnect.Client, erro
 		devportalConnectionProvider = devportalservice.NewBitriseClient(http.DefaultClient, config.BuildURL, string(config.BuildAPIToken))
 
 		if devportalConnectionProvider != nil {
-			appleDeveloperPortalConnection, err := devportalConnectionProvider.GetAppleDeveloperConnection()
+			var err error
+			appleDeveloperPortalConnection, err = devportalConnectionProvider.GetAppleDeveloperConnection()
 			if err != nil {
 				handleSessionDataError(err)
 			}
+		}
 
-			if appleDeveloperPortalConnection != nil && (appleDeveloperPortalConnection.APIKeyConnection == nil) {
-				log.Warnf("%s", noDeveloperAccountConnectedWarning)
-			}
+		if appleDeveloperPortalConnection == nil || (appleDeveloperPortalConnection.APIKeyConnection == nil) {
+			log.Warnf("%s", noDeveloperAccountConnectedWarning)
 		}
 	} else {
 		log.Warnf("Failed to fetch connected Apple Developer Portal Account from bitrise.io.\nStep is not running on bitrise.io: BITRISE_BUILD_URL and BITRISE_BUILD_API_TOKEN envs are not set")
