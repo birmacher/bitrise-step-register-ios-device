@@ -12,4 +12,5 @@ type Config struct {
 	DeviceName     string          `env:"device_name"`
 	DeviceUDID     string          `env:"device_udid"`
 	DevicePlatform string          `env:"device_platform"`
+	XcarchivePath  string          `env:"xcarchive_path"`
 }

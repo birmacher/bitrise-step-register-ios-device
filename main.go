@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/birmacher/steps-register-ios-device/device"
 	"github.com/bitrise-io/go-steputils/stepconf"
@@ -11,6 +16,7 @@ import (
 	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/appleauth"
 	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/devportalservice"
 	"github.com/bitrise-steplib/steps-ios-auto-provision-appstoreconnect/appstoreconnect"
+	"github.com/bitrise-steplib/steps-ios-auto-provision-appstoreconnect/autoprovision"
 )
 
 const noDeveloperAccountConnectedWarning = `Connected Apple Developer Portal Account not found.
@@ -121,5 +127,203 @@ func main() {
 	})
 	logErrorAndExitIfAny(err)
 
+	// This will need to be moved out from this step
+	// for the experiment I'll leave it here as it's easier this way
+
+	// find all provisioning profiles
+	var provisioningProfiles = []string{}
+	err = filepath.Walk(config.XcarchivePath,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				log.Errorf("%v", err)
+			}
+
+			if strings.HasSuffix(path, "embedded.mobileprovision") {
+				provisioningProfiles = append(provisioningProfiles, path)
+			}
+			return nil
+		})
+	if err != nil {
+		log.Errorf("%v", err)
+	}
+
+	// list profiles
+	for _, profilePath := range provisioningProfiles {
+		log.Printf("")
+		log.Infof("Provisioning profile located at: %s", profilePath)
+
+		// get platform
+		platform, err := GetPlistValueForKey(profilePath, "Platform")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("%s", platform))
+		}
+
+		if !strings.Contains(platform, "iOS") {
+			log.Warnf("Provisioning profile platform is not iOS. Skipping...")
+			continue
+		}
+
+		// get name
+		name, err := GetPlistValueForKey(profilePath, "Name")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("%s", name))
+		}
+
+		// find profiles with name
+		profiles, err := FindProfile(client, name)
+		logErrorAndExitIfAny(err)
+
+		var profile *appstoreconnect.Profile = nil
+		for _, p := range profiles {
+			if p.Attributes.Name != name {
+				continue
+			}
+
+			profile = &p
+			break
+		}
+		if profile == nil {
+			logErrorAndExitIfAny(fmt.Errorf("Failed to locate Provisioning Profile on Apple Developer Portal with name: %s", name))
+		}
+
+		log.Printf("Attempting to update Provisioning Profile: %s", profile.Attributes.Name)
+
+		// BundleID
+		bundleID, err := GetBundleID(client, profile)
+		logErrorAndExitIfAny(err)
+
+		// Certificates
+		certificateIDs, err := GetCertificates(client, profile)
+		logErrorAndExitIfAny(err)
+
+		// Devices
+		deviceIDs, err := GetDevices(client, profile)
+		logErrorAndExitIfAny(err)
+
+		// Delete profile
+		log.Printf("Deleting original profile on Apple Developer Portal")
+		err = autoprovision.DeleteProfile(client, profile.ID)
+		logErrorAndExitIfAny(err)
+
+		// Create profile
+		log.Printf("Recreating profile on Apple Developer Portal")
+		profile, err = autoprovision.CreateProfile(
+			client,
+			profile.Attributes.Name,
+			profile.Attributes.ProfileType,
+			*bundleID,
+			certificateIDs,
+			deviceIDs,
+		)
+		logErrorAndExitIfAny(err)
+
+		log.Donef("Profile (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name)
+	}
+
 	os.Exit(0)
+}
+
+func GetBundleID(client *appstoreconnect.Client, profile *appstoreconnect.Profile) (*appstoreconnect.BundleID, error) {
+	bundleIDResponse, err := client.Provisioning.BundleID(profile.Relationships.BundleID.Links.Related)
+	logErrorAndExitIfAny(err)
+
+	return autoprovision.FindBundleID(client, bundleIDResponse.Data.Attributes.Identifier)
+}
+
+func GetCertificates(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]string, error) {
+	var certificateIDs []string
+	var nextPageURL string
+
+	for {
+		response, err := client.Provisioning.Certificates(
+			profile.Relationships.Certificates.Links.Related,
+			&appstoreconnect.PagingOptions{
+				Limit: 20,
+				Next:  nextPageURL,
+			},
+		)
+		if err != nil {
+			return []string{}, err
+		}
+
+		var certificates []appstoreconnect.Certificate = response.Data
+		for _, certificate := range certificates {
+			certificateIDs = append(certificateIDs, certificate.ID)
+		}
+
+		nextPageURL = response.Links.Next
+		if nextPageURL == "" {
+			break
+		}
+	}
+
+	return certificateIDs, nil
+}
+
+func GetDevices(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]string, error) {
+	var deviceIDs []string
+
+	devices, err := autoprovision.ListDevices(client, "", appstoreconnect.IOSDevice)
+	if err != nil {
+		return []string{}, err
+	}
+
+	for _, device := range devices {
+		if strings.HasPrefix(string(profile.Attributes.ProfileType), "TVOS") && device.Attributes.DeviceClass != "APPLE_TV" {
+			continue
+		} else if strings.HasPrefix(string(profile.Attributes.ProfileType), "IOS") &&
+			string(device.Attributes.DeviceClass) != "IPHONE" && string(device.Attributes.DeviceClass) != "IPAD" && string(device.Attributes.DeviceClass) != "IPOD" && string(device.Attributes.DeviceClass) != "APPLE_WATCH" {
+			continue
+		}
+		deviceIDs = append(deviceIDs, device.ID)
+	}
+
+	return deviceIDs, nil
+}
+
+func GetPlistValueForKey(filePath string, key string) (string, error) {
+	var out bytes.Buffer
+	cmd := exec.Command("security", "cms", "-D", "-i", filePath)
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	var tmpFilePath string = os.TempDir() + "resign-profile.plst"
+	os.Remove(tmpFilePath)
+
+	ioutil.WriteFile(filepath.Join(tmpFilePath), out.Bytes(), 0644)
+	defer func() {
+		os.Remove(tmpFilePath)
+	}()
+
+	return PrintPlistKey(tmpFilePath, key)
+}
+
+func PrintPlistKey(filePath string, key string) (string, error) {
+	cmd := exec.Command("/usr/libexec/PlistBuddy", "-c", "Print "+key, filePath)
+	bytes, err := cmd.CombinedOutput()
+	return strings.TrimSpace(string(bytes)), err
+}
+
+// ListProfiles ...
+func FindProfile(client *appstoreconnect.Client, name string) ([]appstoreconnect.Profile, error) {
+	opt := &appstoreconnect.ListProfilesOptions{
+		PagingOptions: appstoreconnect.PagingOptions{
+			Limit: 100,
+		},
+		FilterName: name,
+	}
+
+	r, err := client.Provisioning.ListProfiles(opt)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.Data) == 0 {
+		return nil, nil
+	}
+
+	return r.Data, nil
 }

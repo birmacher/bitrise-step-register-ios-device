@@ -109,4 +109,5 @@ inputs:
       - "ios"
       - "macos"
       - "universal"
+  - xcarchive_path: ""
 outputs:
