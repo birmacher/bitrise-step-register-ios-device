@@ -65,6 +65,12 @@ workflows:
 | device_udid | The UDID of the device that you want to register | 👍 | "" |
 | device_platform | The platform of the device that you want to register | 👍 | ios |
 
+Following inputs will be moved out from this step
+
+| Parameter | Description | Required | Default |
+| --- | --- | --- | --- |
+| xcarchive_path | Path to the Xcarchive file | - | "" |
+
 ### Outputs
 
 This step does not generate any outputs
