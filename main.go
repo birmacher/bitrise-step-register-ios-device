@@ -131,7 +131,7 @@ func main() {
 	// for the experiment I'll leave it here as it's easier this way
 
 	// find all provisioning profiles
-	var provisioningProfiles = []string{}
+	var profilePaths = []string{}
 	err = filepath.Walk(config.XcarchivePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -139,7 +139,7 @@ func main() {
 			}
 
 			if strings.HasSuffix(path, "embedded.mobileprovision") {
-				provisioningProfiles = append(provisioningProfiles, path)
+				profilePaths = append(profilePaths, path)
 			}
 			return nil
 		})
@@ -148,9 +148,17 @@ func main() {
 	}
 
 	// list profiles
-	for _, profilePath := range provisioningProfiles {
+	var profileNames []string
+	for _, profilePath := range profilePaths {
 		log.Printf("")
 		log.Infof("Provisioning profile located at: %s", profilePath)
+
+		// get name
+		name, err := GetPlistValueForKey(profilePath, "Name")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("%s", name))
+		}
+		profileNames = append(profileNames, name)
 
 		// get platform
 		platform, err := GetPlistValueForKey(profilePath, "Platform")
@@ -163,28 +171,8 @@ func main() {
 			continue
 		}
 
-		// get name
-		name, err := GetPlistValueForKey(profilePath, "Name")
-		if err != nil {
-			logErrorAndExitIfAny(fmt.Errorf("%s", name))
-		}
-
-		// find profiles with name
-		profiles, err := FindProfile(client, name)
+		profile, err := FindProfileWithName(client, name)
 		logErrorAndExitIfAny(err)
-
-		var profile *appstoreconnect.Profile = nil
-		for _, p := range profiles {
-			if p.Attributes.Name != name {
-				continue
-			}
-
-			profile = &p
-			break
-		}
-		if profile == nil {
-			logErrorAndExitIfAny(fmt.Errorf("Failed to locate Provisioning Profile on Apple Developer Portal with name: %s", name))
-		}
 
 		log.Printf("Attempting to update Provisioning Profile: %s", profile.Attributes.Name)
 
@@ -217,8 +205,19 @@ func main() {
 		)
 		logErrorAndExitIfAny(err)
 
-		log.Donef("Profile (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name)
+		log.Donef("Provisioning Profile %s (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name, profile.Attributes.UUID)
 	}
+
+	log.Printf("")
+	log.Infof("Installing provisioning profiles")
+	for _, profileName := range profileNames {
+		profile, err := FindProfileWithName(client, profileName)
+		logErrorAndExitIfAny(err)
+
+		err = DownloadProvisioningProfile(client, *profile)
+		logErrorAndExitIfAny(err)
+	}
+	log.Donef("Successfully installed Provisioning Profiles")
 
 	os.Exit(0)
 }
@@ -305,6 +304,39 @@ func PrintPlistKey(filePath string, key string) (string, error) {
 	cmd := exec.Command("/usr/libexec/PlistBuddy", "-c", "Print "+key, filePath)
 	bytes, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(bytes)), err
+}
+
+func DownloadProvisioningProfile(client *appstoreconnect.Client, profile appstoreconnect.Profile) error {
+	log.Printf("Installing provisioning profile: %s (%s)", profile.Attributes.Name, profile.Attributes.UUID)
+
+	err := autoprovision.WriteProfile(profile)
+	if err != nil {
+		return fmt.Errorf("Failed to install profile %s (%s)\n%v", profile.Attributes.Name, profile.Attributes.UUID, err)
+	}
+	return nil
+}
+
+func FindProfileWithName(client *appstoreconnect.Client, profileName string) (*appstoreconnect.Profile, error) {
+	// find profiles with name
+	profiles, err := FindProfile(client, profileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var profile *appstoreconnect.Profile = nil
+	for _, p := range profiles {
+		if p.Attributes.Name != profileName {
+			continue
+		}
+
+		profile = &p
+		break
+	}
+	if profile == nil {
+		return nil, fmt.Errorf("Failed to locate Provisioning Profile on Apple Developer Portal with name: %s", profileName)
+	}
+
+	return profile, nil
 }
 
 // ListProfiles ...
