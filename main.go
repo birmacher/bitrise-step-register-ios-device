@@ -143,7 +143,9 @@ func main() {
 			}
 			return nil
 		})
-	logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive file: %s\n%v", config.XcarchivePath, err))
+	if err != nil {
+		logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive file: %s\n%v", config.XcarchivePath, err))
+	}
 
 	// list profiles
 	var profileNames []string
