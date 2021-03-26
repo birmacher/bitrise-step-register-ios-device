@@ -185,7 +185,7 @@ func main() {
 		logErrorAndExitIfAny(err)
 
 		// Devices
-		deviceIDs, err := GetDevices(client, profile)
+		deviceIDs, err := GetAllRegisteredDevices(client, profile)
 		logErrorAndExitIfAny(err)
 
 		// Delete profile
@@ -259,7 +259,7 @@ func GetCertificates(client *appstoreconnect.Client, profile *appstoreconnect.Pr
 	return certificateIDs, nil
 }
 
-func GetDevices(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]string, error) {
+func GetAllRegisteredDevices(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]string, error) {
 	var deviceIDs []string
 
 	devices, err := autoprovision.ListDevices(client, "", appstoreconnect.IOSDevice)
