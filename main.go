@@ -135,7 +135,7 @@ func main() {
 	err = filepath.Walk(config.XcarchivePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				log.Errorf("%v", err)
+				return err
 			}
 
 			if strings.HasSuffix(path, "embedded.mobileprovision") {
@@ -143,9 +143,7 @@ func main() {
 			}
 			return nil
 		})
-	if err != nil {
-		log.Errorf("%v", err)
-	}
+	logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive file: %s\n%v", config.XcarchivePath, err))
 
 	// list profiles
 	var profileNames []string
