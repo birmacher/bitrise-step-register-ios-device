@@ -174,6 +174,16 @@ func main() {
 		profile, err := FindProfileWithName(client, name)
 		logErrorAndExitIfAny(err)
 
+		devicesInProfile, err := GetDevices(client, profile)
+		logErrorAndExitIfAny(err)
+
+		for _, deviceInProfile := range devicesInProfile {
+			if deviceInProfile.Attributes.UDID == config.DeviceUDID {
+				log.Warnf("Device already added to this provisioning profile. Skipping...")
+				continue
+			}
+		}
+
 		log.Printf("Attempting to update provisioning profile on Apple Developer Portal: %s", profile.Attributes.Name)
 
 		// BundleID
@@ -227,6 +237,33 @@ func GetBundleID(client *appstoreconnect.Client, profile *appstoreconnect.Profil
 	logErrorAndExitIfAny(err)
 
 	return autoprovision.FindBundleID(client, bundleIDResponse.Data.Attributes.Identifier)
+}
+
+func GetDevices(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]appstoreconnect.Device, error) {
+	var devices []appstoreconnect.Device
+	var nextPageURL string
+
+	for {
+		response, err := client.Provisioning.Devices(
+			profile.Relationships.Devices.Links.Related,
+			&appstoreconnect.PagingOptions{
+				Limit: 20,
+				Next:  nextPageURL,
+			},
+		)
+		if err != nil {
+			return []appstoreconnect.Device{}, err
+		}
+
+		devices = append(devices, response.Data...)
+
+		nextPageURL = response.Links.Next
+		if nextPageURL == "" {
+			break
+		}
+	}
+
+	return devices, nil
 }
 
 func GetCertificates(client *appstoreconnect.Client, profile *appstoreconnect.Profile) ([]string, error) {
