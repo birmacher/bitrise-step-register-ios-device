@@ -100,7 +100,7 @@ func setupAppStoreConnectAPIClient(config Config) (*appstoreconnect.Client, erro
 	client := appstoreconnect.NewClient(http.DefaultClient, authConfig.APIKey.KeyID, authConfig.APIKey.IssuerID, []byte(authConfig.APIKey.PrivateKey))
 	client.EnableDebugLogs = false
 
-	log.Donef("App Store Connect API connection setup successfully")
+	log.Donef("Successfully setup connection to Apple Developer Portal")
 	return client, nil
 }
 
@@ -174,7 +174,7 @@ func main() {
 		profile, err := FindProfileWithName(client, name)
 		logErrorAndExitIfAny(err)
 
-		log.Printf("Attempting to update Provisioning Profile: %s", profile.Attributes.Name)
+		log.Printf("Attempting to update provisioning profile on Apple Developer Portal: %s", profile.Attributes.Name)
 
 		// BundleID
 		bundleID, err := GetBundleID(client, profile)
@@ -189,12 +189,12 @@ func main() {
 		logErrorAndExitIfAny(err)
 
 		// Delete profile
-		log.Printf("Deleting original profile on Apple Developer Portal")
+		log.Printf("Deleting original provisioning profile on Apple Developer Portal")
 		err = autoprovision.DeleteProfile(client, profile.ID)
 		logErrorAndExitIfAny(err)
 
 		// Create profile
-		log.Printf("Recreating profile on Apple Developer Portal")
+		log.Printf("Recreating provisioning profile on Apple Developer Portal")
 		profile, err = autoprovision.CreateProfile(
 			client,
 			profile.Attributes.Name,
@@ -205,7 +205,7 @@ func main() {
 		)
 		logErrorAndExitIfAny(err)
 
-		log.Donef("Provisioning Profile %s (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name, profile.Attributes.UUID)
+		log.Donef("Provisioning profile %s (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name, profile.Attributes.UUID)
 	}
 
 	log.Printf("")
@@ -217,7 +217,7 @@ func main() {
 		err = DownloadProvisioningProfile(client, *profile)
 		logErrorAndExitIfAny(err)
 	}
-	log.Donef("Successfully installed Provisioning Profiles")
+	log.Donef("Successfully installed provisioning profiles")
 
 	os.Exit(0)
 }
