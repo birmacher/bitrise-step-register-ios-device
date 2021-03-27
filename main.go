@@ -215,34 +215,34 @@ func main() {
 
 		log.Printf("Attempting to update provisioning profile on Apple Developer Portal: %s", profile.Attributes.Name)
 
-		// // BundleID
-		// bundleID, err := GetBundleID(client, profile)
-		// logErrorAndExitIfAny(err)
+		// BundleID
+		bundleID, err := GetBundleID(client, profile)
+		logErrorAndExitIfAny(err)
 
-		// // Certificates
-		// certificateIDs, err := GetCertificates(client, profile)
-		// logErrorAndExitIfAny(err)
+		// Certificates
+		certificateIDs, err := GetCertificates(client, profile)
+		logErrorAndExitIfAny(err)
 
-		// // Devices
-		// deviceIDs, err := GetAllRegisteredDevices(client, profile)
-		// logErrorAndExitIfAny(err)
+		// Devices
+		deviceIDs, err := GetAllRegisteredDevices(client, profile)
+		logErrorAndExitIfAny(err)
 
-		// // Delete profile
-		// log.Printf("Deleting original provisioning profile on Apple Developer Portal")
-		// err = autoprovision.DeleteProfile(client, profile.ID)
-		// logErrorAndExitIfAny(err)
+		// Delete profile
+		log.Printf("Deleting original provisioning profile on Apple Developer Portal")
+		err = autoprovision.DeleteProfile(client, profile.ID)
+		logErrorAndExitIfAny(err)
 
-		// // Create profile
-		// log.Printf("Recreating provisioning profile on Apple Developer Portal")
-		// profile, err = autoprovision.CreateProfile(
-		// 	client,
-		// 	profile.Attributes.Name,
-		// 	profile.Attributes.ProfileType,
-		// 	*bundleID,
-		// 	certificateIDs,
-		// 	deviceIDs,
-		// )
-		// logErrorAndExitIfAny(err)
+		// Create profile
+		log.Printf("Recreating provisioning profile on Apple Developer Portal")
+		profile, err = autoprovision.CreateProfile(
+			client,
+			profile.Attributes.Name,
+			profile.Attributes.ProfileType,
+			*bundleID,
+			certificateIDs,
+			deviceIDs,
+		)
+		logErrorAndExitIfAny(err)
 
 		log.Donef("Provisioning profile %s (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name, profile.Attributes.UUID)
 	}
