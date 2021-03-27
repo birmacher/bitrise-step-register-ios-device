@@ -131,7 +131,10 @@ func main() {
 	// for the experiment I'll leave it here as it's easier this way
 
 	// find all provisioning profiles
-	var profilePaths = []string{}
+	var profilePaths = []string{
+		"/Users/birmacher/Downloads/Bitrise_iOS_adhoc__auto_provisioniossimpleobjc.mobileprovision",
+		"/Users/birmacher/Downloads/Bitrise_ios_appstore__Bitriseiossimpleobjcnewcerts.mobileprovision ",
+	}
 	err = filepath.Walk(config.XcarchivePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -171,49 +174,75 @@ func main() {
 			continue
 		}
 
+		// get device UUIDs
+		_, err = GetPlistValueForKey(profilePath, ":ProvisionedDevices")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("Cannot resign with provisioning profile type: AppStore, or Enterprise provisioning profile detected."))
+		}
+
+		// get distribution type
+		var distributionType appstoreconnect.ProfileType
+		distributionBoolenFlag, err := GetPlistValueForKey(profilePath, ":Entitlements:get-task-allow")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("%s", distributionBoolenFlag))
+		}
+
+		if distributionBoolenFlag == "true" {
+			distributionType = appstoreconnect.IOSAppDevelopment
+		} else {
+			distributionType = appstoreconnect.IOSAppAdHoc
+		}
+		log.Infof("%s", distributionType)
+
 		profile, err := FindProfileWithName(client, name)
 		logErrorAndExitIfAny(err)
 
 		devicesInProfile, err := GetDevices(client, profile)
 		logErrorAndExitIfAny(err)
 
+		deviceFound := false
 		for _, deviceInProfile := range devicesInProfile {
 			if deviceInProfile.Attributes.UDID == config.DeviceUDID {
 				log.Warnf("Device already added to this provisioning profile. Skipping...")
-				continue
+
+				deviceFound = true
+				break
 			}
+		}
+		if deviceFound == true {
+			continue
 		}
 
 		log.Printf("Attempting to update provisioning profile on Apple Developer Portal: %s", profile.Attributes.Name)
 
-		// BundleID
-		bundleID, err := GetBundleID(client, profile)
-		logErrorAndExitIfAny(err)
+		// // BundleID
+		// bundleID, err := GetBundleID(client, profile)
+		// logErrorAndExitIfAny(err)
 
-		// Certificates
-		certificateIDs, err := GetCertificates(client, profile)
-		logErrorAndExitIfAny(err)
+		// // Certificates
+		// certificateIDs, err := GetCertificates(client, profile)
+		// logErrorAndExitIfAny(err)
 
-		// Devices
-		deviceIDs, err := GetAllRegisteredDevices(client, profile)
-		logErrorAndExitIfAny(err)
+		// // Devices
+		// deviceIDs, err := GetAllRegisteredDevices(client, profile)
+		// logErrorAndExitIfAny(err)
 
-		// Delete profile
-		log.Printf("Deleting original provisioning profile on Apple Developer Portal")
-		err = autoprovision.DeleteProfile(client, profile.ID)
-		logErrorAndExitIfAny(err)
+		// // Delete profile
+		// log.Printf("Deleting original provisioning profile on Apple Developer Portal")
+		// err = autoprovision.DeleteProfile(client, profile.ID)
+		// logErrorAndExitIfAny(err)
 
-		// Create profile
-		log.Printf("Recreating provisioning profile on Apple Developer Portal")
-		profile, err = autoprovision.CreateProfile(
-			client,
-			profile.Attributes.Name,
-			profile.Attributes.ProfileType,
-			*bundleID,
-			certificateIDs,
-			deviceIDs,
-		)
-		logErrorAndExitIfAny(err)
+		// // Create profile
+		// log.Printf("Recreating provisioning profile on Apple Developer Portal")
+		// profile, err = autoprovision.CreateProfile(
+		// 	client,
+		// 	profile.Attributes.Name,
+		// 	profile.Attributes.ProfileType,
+		// 	*bundleID,
+		// 	certificateIDs,
+		// 	deviceIDs,
+		// )
+		// logErrorAndExitIfAny(err)
 
 		log.Donef("Provisioning profile %s (%s) successfully created on Apple Deveper Portal", profile.Attributes.Name, profile.Attributes.UUID)
 	}
@@ -316,6 +345,11 @@ func GetAllRegisteredDevices(client *appstoreconnect.Client, profile *appstoreco
 
 	return deviceIDs, nil
 }
+
+// get-task-allow
+// true -> dev (debugger)
+// false -> distr
+// ProvisionedDevices
 
 func GetPlistValueForKey(filePath string, key string) (string, error) {
 	var out bytes.Buffer
