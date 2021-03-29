@@ -6,6 +6,7 @@ github.com/bitrise-io/go-plist
 ## explicit
 github.com/bitrise-io/go-steputils/input
 github.com/bitrise-io/go-steputils/stepconf
+github.com/bitrise-io/go-steputils/tools
 # github.com/bitrise-io/go-utils v0.0.0-20210316133228-449620935158
 ## explicit
 github.com/bitrise-io/go-utils/colorstring

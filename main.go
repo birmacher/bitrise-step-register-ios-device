@@ -13,6 +13,7 @@ import (
 
 	"github.com/birmacher/steps-register-ios-device/device"
 	"github.com/bitrise-io/go-steputils/stepconf"
+	"github.com/bitrise-io/go-steputils/tools"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/appleauth"
 	"github.com/bitrise-steplib/steps-deploy-to-itunesconnect-deliver/devportalservice"
@@ -277,7 +278,11 @@ func main() {
 	log.Donef("Successfully installed provisioning profiles")
 
 	log.Printf("")
-	log.Printf(XCarxhiveExportOption(config.BundleIDToExport, distributionType.ReadableString(), signingIdentity, profileNames, teamID))
+	xcarchiveExportOptions := XCarxhiveExportOption(config.BundleIDToExport, distributionType.ReadableString(), signingIdentity, profileNames, teamID)
+	if err := tools.ExportEnvironmentWithEnvman("BITRISE_XCARCHIVE_EXPORT_OPTIONS", xcarchiveExportOptions); err != nil {
+		logErrorAndExitIfAny(fmt.Errorf("Failed to export BITRISE_XCARCHIVE_EXPORT_OPTIONS\n%v", err))
+	}
+	log.Donef("Xcarchive export options exported to BITRISE_XCARCHIVE_EXPORT_OPTIONS environment variable")
 
 	os.Exit(0)
 }
