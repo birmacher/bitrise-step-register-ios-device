@@ -122,3 +122,6 @@ inputs:
         Bundle ID to export from the Xcarchive file
       is_dont_change_value: true
 outputs:
+  - BITRISE_XCARCHIVE_EXPORT_OPTIONS: 
+    opts:
+      title: Custom export options to export from Xcarchive

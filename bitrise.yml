@@ -29,6 +29,10 @@ workflows:
             - device_platform: $DEVICE_PLATFORM
             - xcarchive_path: $XCARCHIVE_PATH
             - bundle_id_to_export: $BUNDLE_ID
+      - export-xcarchive@3:
+          inputs:
+          - archive_path: $XCARCHIVE_PATH
+          - custom_export_options_plist_content: $BITRISE_XCARCHIVE_EXPORT_OPTIONS
   audit-this-step:
     steps:
       - script:

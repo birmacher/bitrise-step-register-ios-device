@@ -457,7 +457,7 @@ func XCarxhiveExportOption(exportBundleID string, distributionType string, certi
 	provisioningProfiles := ""
 	for bundleID, profileName := range bundleIDsWithProfiles {
 		profileIdentifier := fmt.Sprintf(`
-			<key>%s/key>
+			<key>%s</key>
 			<string>%s</string>`,
 			bundleID,
 			profileName)
@@ -480,7 +480,7 @@ func XCarxhiveExportOption(exportBundleID string, distributionType string, certi
 		<key>distributionBundleIdentifier</key>
 		<string>%s</string>
 		<key>method</key>
-		<string%s</string>
+		<string>%s</string>
 		<key>provisioningProfiles</key>
 		<dict>%s
 		</dict>
