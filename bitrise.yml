@@ -28,6 +28,7 @@ workflows:
             - device_udid: $DEVICE_UDID
             - device_platform: $DEVICE_PLATFORM
             - xcarchive_path: $XCARCHIVE_PATH
+            - bundle_id_to_export: $BUNDLE_ID
   audit-this-step:
     steps:
       - script:

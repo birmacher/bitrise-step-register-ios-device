@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -131,10 +132,7 @@ func main() {
 	// for the experiment I'll leave it here as it's easier this way
 
 	// find all provisioning profiles
-	var profilePaths = []string{
-		"/Users/birmacher/Downloads/Bitrise_iOS_adhoc__auto_provisioniossimpleobjc.mobileprovision",
-		"/Users/birmacher/Downloads/Bitrise_ios_appstore__Bitriseiossimpleobjcnewcerts.mobileprovision ",
-	}
+	var profilePaths = []string{}
 	err = filepath.Walk(config.XcarchivePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -150,21 +148,41 @@ func main() {
 		logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive file: %s\n%v", config.XcarchivePath, err))
 	}
 
+	profileNames := make(map[string]string)
+	var distributionType appstoreconnect.ProfileType = ""
+
+	xcarchiveInfoPlist := path.Join(config.XcarchivePath, "Info.plist")
+	teamID, err := GetValueForKeyInPlist(xcarchiveInfoPlist, ":ApplicationProperties:Team")
+	if err != nil {
+		logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive's Info.plist file at path: %s\n%v", xcarchiveInfoPlist, err))
+	}
+
+	signingIdentity, err := GetValueForKeyInPlist(xcarchiveInfoPlist, ":ApplicationProperties:SigningIdentity")
+	if err != nil {
+		logErrorAndExitIfAny(fmt.Errorf("Failed to read Xcarchive's Info.plist file at path: %s\n%v", xcarchiveInfoPlist, err))
+	}
+
 	// list profiles
-	var profileNames []string
 	for _, profilePath := range profilePaths {
 		log.Printf("")
 		log.Infof("Provisioning profile located at: %s", profilePath)
 
+		// locate Info.plist
+		infoPlistPath := path.Join(path.Dir(profilePath), "Info.plist")
+		bundleIdentifier, err := GetValueForKeyInPlist(infoPlistPath, ":CFBundleIdentifier")
+		if err != nil {
+			logErrorAndExitIfAny(fmt.Errorf("Failed to read Info.plist file at path: %s\n%v", infoPlistPath, err))
+		}
+
 		// get name
-		name, err := GetPlistValueForKey(profilePath, "Name")
+		name, err := GetValueForKeyInProvisioningProfile(profilePath, "Name")
 		if err != nil {
 			logErrorAndExitIfAny(fmt.Errorf("%s", name))
 		}
-		profileNames = append(profileNames, name)
+		profileNames[bundleIdentifier] = name
 
 		// get platform
-		platform, err := GetPlistValueForKey(profilePath, "Platform")
+		platform, err := GetValueForKeyInProvisioningProfile(profilePath, "Platform")
 		if err != nil {
 			logErrorAndExitIfAny(fmt.Errorf("%s", platform))
 		}
@@ -175,24 +193,24 @@ func main() {
 		}
 
 		// get device UUIDs
-		_, err = GetPlistValueForKey(profilePath, ":ProvisionedDevices")
+		_, err = GetValueForKeyInProvisioningProfile(profilePath, ":ProvisionedDevices")
 		if err != nil {
 			logErrorAndExitIfAny(fmt.Errorf("Cannot resign with provisioning profile type: AppStore, or Enterprise provisioning profile detected."))
 		}
 
-		// get distribution type
-		var distributionType appstoreconnect.ProfileType
-		distributionBoolenFlag, err := GetPlistValueForKey(profilePath, ":Entitlements:get-task-allow")
-		if err != nil {
-			logErrorAndExitIfAny(fmt.Errorf("%s", distributionBoolenFlag))
-		}
+		// get distribution type for the file to export
+		if bundleIdentifier == config.BundleIDToExport {
+			distributionBoolenFlag, err := GetValueForKeyInProvisioningProfile(profilePath, ":Entitlements:get-task-allow")
+			if err != nil {
+				logErrorAndExitIfAny(fmt.Errorf("%s", distributionBoolenFlag))
+			}
 
-		if distributionBoolenFlag == "true" {
-			distributionType = appstoreconnect.IOSAppDevelopment
-		} else {
-			distributionType = appstoreconnect.IOSAppAdHoc
+			if distributionBoolenFlag == "true" {
+				distributionType = appstoreconnect.IOSAppDevelopment
+			} else {
+				distributionType = appstoreconnect.IOSAppAdHoc
+			}
 		}
-		log.Infof("%s", distributionType)
 
 		profile, err := FindProfileWithName(client, name)
 		logErrorAndExitIfAny(err)
@@ -257,6 +275,9 @@ func main() {
 		logErrorAndExitIfAny(err)
 	}
 	log.Donef("Successfully installed provisioning profiles")
+
+	log.Printf("")
+	log.Printf(XCarxhiveExportOption(config.BundleIDToExport, distributionType.ReadableString(), signingIdentity, profileNames, teamID))
 
 	os.Exit(0)
 }
@@ -346,12 +367,7 @@ func GetAllRegisteredDevices(client *appstoreconnect.Client, profile *appstoreco
 	return deviceIDs, nil
 }
 
-// get-task-allow
-// true -> dev (debugger)
-// false -> distr
-// ProvisionedDevices
-
-func GetPlistValueForKey(filePath string, key string) (string, error) {
+func GetValueForKeyInProvisioningProfile(filePath string, key string) (string, error) {
 	var out bytes.Buffer
 	cmd := exec.Command("security", "cms", "-D", "-i", filePath)
 	cmd.Stdout = &out
@@ -360,7 +376,7 @@ func GetPlistValueForKey(filePath string, key string) (string, error) {
 		return "", err
 	}
 
-	var tmpFilePath string = os.TempDir() + "resign-profile.plst"
+	var tmpFilePath string = os.TempDir() + "resign-profile.plist"
 	os.Remove(tmpFilePath)
 
 	ioutil.WriteFile(filepath.Join(tmpFilePath), out.Bytes(), 0644)
@@ -368,10 +384,10 @@ func GetPlistValueForKey(filePath string, key string) (string, error) {
 		os.Remove(tmpFilePath)
 	}()
 
-	return PrintPlistKey(tmpFilePath, key)
+	return GetValueForKeyInPlist(tmpFilePath, key)
 }
 
-func PrintPlistKey(filePath string, key string) (string, error) {
+func GetValueForKeyInPlist(filePath string, key string) (string, error) {
 	cmd := exec.Command("/usr/libexec/PlistBuddy", "-c", "Print "+key, filePath)
 	bytes, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(bytes)), err
@@ -429,4 +445,51 @@ func FindProfile(client *appstoreconnect.Client, name string) ([]appstoreconnect
 	}
 
 	return r.Data, nil
+}
+
+//
+func XCarxhiveExportOption(exportBundleID string, distributionType string, certificate string, bundleIDsWithProfiles map[string]string, teamID string) string {
+	provisioningProfiles := ""
+	for bundleID, profileName := range bundleIDsWithProfiles {
+		profileIdentifier := fmt.Sprintf(`
+			<key>%s/key>
+			<string>%s</string>`,
+			bundleID,
+			profileName)
+
+		if len(provisioningProfiles) == 0 {
+			provisioningProfiles = profileIdentifier
+		} else {
+			profileIdentifier = strings.Join([]string{
+				provisioningProfiles,
+				profileIdentifier,
+			}, "\n")
+		}
+	}
+
+	return fmt.Sprintf(`
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>distributionBundleIdentifier</key>
+		<string>%s</string>
+		<key>method</key>
+		<string%s</string>
+		<key>provisioningProfiles</key>
+		<dict>%s
+		</dict>
+		<key>signingCertificate</key>
+		<string>%s</string>
+		<key>teamID</key>
+		<string>%s</string>
+	</dict>
+</plist>
+`,
+		exportBundleID,
+		distributionType,
+		provisioningProfiles,
+		certificate,
+		teamID,
+	)
 }

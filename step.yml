@@ -115,4 +115,10 @@ inputs:
       description: |-
         Path to the Xcarchive file
       is_dont_change_value: true
+  - bundle_id_to_export: ""
+    opts:
+      title: Bundle ID to export from the Xcarchive file
+      description: |-
+        Bundle ID to export from the Xcarchive file
+      is_dont_change_value: true
 outputs:
